@@ -35,7 +35,6 @@ void setup() {
     }
 }
 
-
 void print_roll_pitch_yaw() {
     Serial.print("Yaw, Pitch, Roll: ");
     Serial.print(mpu.getYaw(), 2);
