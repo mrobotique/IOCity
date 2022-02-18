@@ -2,14 +2,34 @@
 #include "MPU9250.h"
 #include <Adafruit_BMP280.h>
 #include "MQ135.h"
+#include <dht.h>
 
 
-#define LOCAL_ALTITUDE  1013.25// the pressure(hPa) at sea level in day
+#define REF_PRESSURE  1013.25// the pressure(hPa) at sea level in day
+#define REF_CO2 400 // 
 
+#define DHTPIN 2 
+
+dht DHT;
 MPU9250 mpu;
 Adafruit_BMP280 bme; // I2C
-
 MQ135 gasSensor = MQ135(A0); // Attach sensor to pin A0
+
+
+
+
+unsigned long DHT11_samplingTime = 1000; //in [ms]
+unsigned long MPU_samplingTime = 50; //in [ms]
+unsigned long MQ_samplingTime = 100; //in [ms]
+
+unsigned long previous_DHT11_samplingTime = millis();
+unsigned long previous_MPU_samplingTime = millis();
+unsigned long previous_MQ_samplingTime = millis();
+
+float Ax, Ay, Az;
+float roll, pitch, yaw;
+float co2, co2_c;
+float temp, hum, press, alt;
 
 void setup() {
     Serial.begin(115200);
@@ -33,36 +53,89 @@ void setup() {
             delay(5000);
         }
     }
+
+    // initialize digital pin LED_BUILTIN as an output.
+    pinMode(LED_BUILTIN, OUTPUT);
+
+    //ToDo
+    /*
+        Calibra te MQ35
+    */
+
 }
 
-void print_roll_pitch_yaw() {
-    Serial.print("Yaw, Pitch, Roll: ");
-    Serial.print(mpu.getYaw(), 2);
-    Serial.print(", ");
-    Serial.print(mpu.getPitch(), 2);
-    Serial.print(", ");
-    Serial.print(mpu.getRoll(), 2);
 
-    Serial.print("\t | Ax, Ay, Az: ");
-    Serial.print(mpu.getAccX(), 2);
-    Serial.print(", ");
-    Serial.print(mpu.getAccY(), 2);
-    Serial.print(", ");
-    Serial.print(mpu.getAccZ(), 2);
-
-    Serial.print("  | Temperature(*C): ");
-    Serial.print(bme.readTemperature());
-    Serial.print("  Pressure(KPa): ");
-    Serial.print(bme.readPressure()/1000);
-    Serial.print("  ApproxAltitude(m): ");
-    Serial.print(bme.readAltitude(LOCAL_ALTITUDE)); // this should be adjusted to your local forcase
-    Serial.print ("  CO2 (ppm): ");
-    Serial.println (gasSensor.getPPM() + 400);
-    //Serial.println (gasSensor.getCorrectedPPM(temp, humidity));
+void dataSender(){
+        Serial.print("S");
+        Serial.print(",");        
+        Serial.print(millis());
+        Serial.print(",");
+        Serial.print(roll);
+        Serial.print(",");
+        Serial.print(pitch);
+        Serial.print(",");
+        Serial.print(yaw);
+        Serial.print(",");
+        Serial.print(Ax);
+        Serial.print(",");
+        Serial.print(Ay);
+        Serial.print(",");
+        Serial.print(Az);
+        Serial.print(",");
+        Serial.print(temp);
+        Serial.print(",");
+        Serial.print(hum);
+        Serial.print(",");
+        Serial.print(press);
+        Serial.print(",");
+        Serial.print(alt);
+        Serial.print(",");
+        Serial.print(co2);
+        Serial.print(",");
+        Serial.print(co2_c);
+        Serial.print(",");
+        Serial.println("F");
 }
+
+    void sequencer (){
+    unsigned long top_time = millis();    
+    //@ 20Hz - check MPU
+    if (top_time - previous_MPU_samplingTime >= MPU_samplingTime){
+        if (mpu.update()) {
+            previous_MPU_samplingTime = top_time;
+            Ax = mpu.getAccX();
+            Ay = mpu.getAccY();
+            Az = mpu.getAccZ();
+
+            roll = mpu.getRoll();
+            pitch = mpu.getPitch();
+            yaw = mpu.getYaw();
+        }     
+    }
+
+    //@10 Hz check MQ
+    if (top_time- previous_MQ_samplingTime >= MQ_samplingTime){
+        previous_MQ_samplingTime = top_time;
+        co2 = gasSensor.getPPM() + REF_CO2; //CO2
+        co2_c = gasSensor.getCorrectedPPM(temp, hum) + REF_CO2; //Corrected CO2
+        temp = bme.readTemperature(); //C
+        press = (bme.readPressure()/1000); //KPa
+        alt = bme.readAltitude(REF_PRESSURE); //[m]
+    
+        dataSender();
+    }
+
+    //check DHT11
+    if (top_time - previous_DHT11_samplingTime >= DHT11_samplingTime){
+        previous_DHT11_samplingTime = top_time;       
+        DHT.read11(DHTPIN);
+        hum = DHT.humidity;
+        digitalWrite(LED_BUILTIN, !(digitalRead(LED_BUILTIN)));
+        
+    }
+}
+
 
 void loop() {
-    if (mpu.update()) {
-        print_roll_pitch_yaw();
-    }
+    sequencer();
 }
