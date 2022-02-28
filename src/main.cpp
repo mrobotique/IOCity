@@ -3,6 +3,7 @@
 #include <Adafruit_BMP280.h>
 #include "MQ135.h"
 #include <dht.h>
+#include "blinker.h"
 
 
 #define REF_PRESSURE  1013.25// the pressure(hPa) at sea level in day
@@ -14,6 +15,7 @@ dht DHT;
 MPU9250 mpu;
 Adafruit_BMP280 bme; // I2C
 MQ135 gasSensor = MQ135(A0); // Attach sensor to pin A0
+Flasher led(13);
 
 
 
@@ -48,19 +50,19 @@ void setup() {
     setting.accel_dlpf_cfg = ACCEL_DLPF_CFG::DLPF_45HZ;
 
     if (!mpu.setup(0x68, setting)) {  // change to your own address
+        Serial.println("MPU connection failed.");
+        led.Update_mode(LED_ERROR);
         while (1) {
-            Serial.println("MPU connection failed. Please check your connection with `connection_check` example.");
-            delay(5000);
+            led.Update();            
         }
     }
 
-    // initialize digital pin LED_BUILTIN as an output.
-    pinMode(LED_BUILTIN, OUTPUT);
 
     //ToDo
     /*
         Calibra te MQ35
     */
+   led.Update_mode(LED_SHORT_DOUBLE);
 
 }
 
@@ -130,7 +132,7 @@ void dataSender(){
         previous_DHT11_samplingTime = top_time;       
         DHT.read11(DHTPIN);
         hum = DHT.humidity;
-        digitalWrite(LED_BUILTIN, !(digitalRead(LED_BUILTIN)));
+        //digitalWrite(LED_BUILTIN, !(digitalRead(LED_BUILTIN)));
         
     }
 }
@@ -138,4 +140,5 @@ void dataSender(){
 
 void loop() {
     sequencer();
+    led.Update();
 }
