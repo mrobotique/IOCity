@@ -21,7 +21,7 @@ Flasher led(13);
 
 
 unsigned long DHT11_samplingTime = 1000; //in [ms]
-unsigned long MPU_samplingTime = 50; //in [ms]
+unsigned long MPU_samplingTime = 25; //in [ms]
 unsigned long MQ_samplingTime = 100; //in [ms]
 
 unsigned long previous_DHT11_samplingTime = millis();
@@ -56,19 +56,12 @@ void setup() {
             led.Update();            
         }
     }
-
-
-    //ToDo
-    /*
-        Calibra te MQ35
-    */
-   led.Update_mode(LED_SHORT_DOUBLE);
-
+    led.Update_mode(LED_SHORT_DOUBLE);
 }
 
 
 void dataSender(){
-        Serial.print("S");
+        Serial.print("BOT");
         Serial.print(",");        
         Serial.print(millis());
         Serial.print(",");
@@ -96,26 +89,22 @@ void dataSender(){
         Serial.print(",");
         Serial.print(co2_c);
         Serial.print(",");
-        Serial.println("F");
+        Serial.println("EOT");
 }
 
     void sequencer (){
     unsigned long top_time = millis();    
-    //@ 20Hz - check MPU
+    //check MPU
     if (top_time - previous_MPU_samplingTime >= MPU_samplingTime){
         if (mpu.update()) {
             previous_MPU_samplingTime = top_time;
             Ax = mpu.getAccX();
             Ay = mpu.getAccY();
             Az = mpu.getAccZ();
-
-            roll = mpu.getRoll();
-            pitch = mpu.getPitch();
-            yaw = mpu.getYaw();
         }     
     }
 
-    //@10 Hz check MQ
+    //check MQ
     if (top_time- previous_MQ_samplingTime >= MQ_samplingTime){
         previous_MQ_samplingTime = top_time;
         co2 = gasSensor.getPPM() + REF_CO2; //CO2
@@ -123,6 +112,12 @@ void dataSender(){
         temp = bme.readTemperature(); //C
         press = (bme.readPressure()/1000); //KPa
         alt = bme.readAltitude(REF_PRESSURE); //[m]
+
+        if (mpu.update()) {
+            roll = mpu.getRoll();
+            pitch = mpu.getPitch();
+            yaw = mpu.getYaw();
+        }   
     
         dataSender();
     }
