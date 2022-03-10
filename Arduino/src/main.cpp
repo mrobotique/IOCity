@@ -5,7 +5,6 @@
 #include <dht.h>
 #include "blinker.h"
 
-
 #define REF_PRESSURE  1013.25// the pressure(hPa) at sea level in day
 #define REF_CO2 400 // 
 
@@ -16,9 +15,6 @@ MPU9250 mpu;
 Adafruit_BMP280 bme; // I2C
 MQ135 gasSensor = MQ135(A0); // Attach sensor to pin A0
 Flasher led(13);
-
-
-
 
 unsigned long DHT11_samplingTime = 1000; //in [ms]
 unsigned long MPU_samplingTime = 25; //in [ms]
