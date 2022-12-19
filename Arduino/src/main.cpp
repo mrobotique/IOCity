@@ -35,6 +35,7 @@ void setup() {
     bme.begin(0x76);
     delay(2000);
 
+
     MPU9250Setting setting;
     setting.accel_fs_sel = ACCEL_FS_SEL::A16G;
     setting.gyro_fs_sel = GYRO_FS_SEL::G2000DPS;
